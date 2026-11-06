@@ -1,7 +1,9 @@
 # Práctica 5 – Libros P5 (Kotlin Multiplatform · Android)
 
 **Unidad de aprendizaje:** Desarrollo de aplicaciones móviles nativas · ESCOM IPN · Plan 2020
-**Alumno:** Caballero Pérez Julio César · 7CV4
+**Alumnos:** -Caballero Pérez Julio César
+-Velazquez Beltran Brandon · 
+**Grupo:** 7CV4
 
 > 🇬🇧 English version below.
 
@@ -116,7 +118,6 @@ O desde Android Studio: abrir la carpeta `app/`, sincronizar Gradle y ejecutar l
 | GET | `/api/admin/users` | **Nuevo** | Sólo rol admin (403 si no) |
 | GET | `/api/admin/users/{id}/history` · `/favorites` | **Nuevo** | Admin + consentimiento del usuario |
 
-> Si tu Práctica 2 usaba otro recurso para el CRUD, enlaza aquí el commit/etiqueta de la Práctica 2 (`git tag practica2`) y ajusta la columna «Origen».
 
 ## Sincronización (resumen)
 
