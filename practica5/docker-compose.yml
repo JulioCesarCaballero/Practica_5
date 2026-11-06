@@ -1,0 +1,34 @@
+# Práctica 5 – Backend REST dockerizado
+#   docker compose up -d --build                 -> API en http://localhost:8000 (sólo para pruebas locales)
+#   docker compose --profile https up -d --build -> además, túnel HTTPS público (Cloudflare Quick Tunnel)
+#   docker compose logs tunnel | grep trycloudflare   -> URL https://xxxx.trycloudflare.com para la app
+services:
+  api:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en el archivo .env}
+      GOOGLE_CLIENT_IDS: ${GOOGLE_CLIENT_IDS:-}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      DATABASE_PATH: /data/app.db
+    volumes:
+      - db-data:/data
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    profiles: ["https"]
+    command: tunnel --no-autoupdate --url http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  db-data:

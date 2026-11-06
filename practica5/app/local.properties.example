@@ -1,0 +1,6 @@
+# Copia como local.properties (NO se sube al repositorio). Android Studio agrega sdk.dir automáticamente.
+# sdk.dir=C\:\\Users\\TU_USUARIO\\AppData\\Local\\Android\\Sdk
+# URL HTTPS del backend (túnel Cloudflare del docker compose o servidor desplegado), sin "/" final
+API_BASE_URL=https://xxxx-xxxx.trycloudflare.com
+# Client ID de tipo "Aplicación web" de Google Cloud (serverClientId)
+GOOGLE_WEB_CLIENT_ID=xxxxxxxxxxxx-xxxxxxxxxxxxxxxx.apps.googleusercontent.com

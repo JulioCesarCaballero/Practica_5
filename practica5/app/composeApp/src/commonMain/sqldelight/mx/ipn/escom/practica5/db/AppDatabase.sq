@@ -1,0 +1,215 @@
+-- Base local (SQLDelight). Todas las tablas con datos personales llevan user_id
+-- para que una sesión nunca lea información de otra cuenta.
+-- Nota: se evita UPSERT (ON CONFLICT DO UPDATE) porque Android 7 (API 24) trae SQLite 3.9.
+
+CREATE TABLE cached_book (
+    work_id TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    authors TEXT NOT NULL,
+    first_year INTEGER,
+    cover_id INTEGER,
+    subjects TEXT NOT NULL,
+    description TEXT,
+    updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE search_cache (
+    user_id TEXT NOT NULL,
+    query_text TEXT NOT NULL,
+    work_ids TEXT NOT NULL,
+    total INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (user_id, query_text)
+);
+
+CREATE TABLE search_history (
+    client_id TEXT NOT NULL PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    query_text TEXT NOT NULL,
+    results_count INTEGER NOT NULL,
+    searched_at INTEGER NOT NULL,
+    synced INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE favorite (
+    user_id TEXT NOT NULL,
+    work_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    authors TEXT NOT NULL,
+    cover_id INTEGER,
+    first_year INTEGER,
+    subjects TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (user_id, work_id)
+);
+
+CREATE TABLE viewed_book (
+    user_id TEXT NOT NULL,
+    work_id TEXT NOT NULL,
+    viewed_at INTEGER NOT NULL,
+    PRIMARY KEY (user_id, work_id)
+);
+
+-- Cola de operaciones pendientes. op_key = usuario|tipo|objetivo, por lo que una
+-- nueva operación sobre el mismo objetivo REEMPLAZA a la anterior (sin duplicados).
+CREATE TABLE pending_op (
+    op_key TEXT NOT NULL PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    type TEXT NOT NULL,
+    target TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    last_error TEXT,
+    created_at INTEGER NOT NULL
+);
+
+CREATE TABLE reading_item (
+    user_id TEXT NOT NULL,
+    id INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    author TEXT NOT NULL,
+    status TEXT NOT NULL,
+    notes TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (user_id, id)
+);
+
+CREATE TABLE recommendation (
+    user_id TEXT NOT NULL,
+    work_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    authors TEXT NOT NULL,
+    cover_id INTEGER,
+    first_year INTEGER,
+    reason TEXT NOT NULL,
+    score INTEGER NOT NULL,
+    generated_at INTEGER NOT NULL,
+    PRIMARY KEY (user_id, work_id)
+);
+
+CREATE TABLE sync_meta (
+    user_id TEXT NOT NULL,
+    meta_key TEXT NOT NULL,
+    meta_value TEXT NOT NULL,
+    PRIMARY KEY (user_id, meta_key)
+);
+
+-- ---------- cached_book ----------
+selectBook:
+SELECT * FROM cached_book WHERE work_id = :workId;
+
+insertBookIfAbsent:
+INSERT OR IGNORE INTO cached_book(work_id, title, authors, first_year, cover_id, subjects, description, updated_at)
+VALUES (:workId, :title, :authors, :firstYear, :coverId, :subjects, NULL, :updatedAt);
+
+updateBookSummary:
+UPDATE cached_book SET title = :title, authors = :authors, first_year = :firstYear, cover_id = :coverId,
+    subjects = :subjects, updated_at = :updatedAt
+WHERE work_id = :workId;
+
+updateBookDetail:
+UPDATE cached_book SET description = :description, subjects = :subjects, updated_at = :updatedAt
+WHERE work_id = :workId;
+
+-- ---------- search_cache ----------
+upsertSearch:
+INSERT OR REPLACE INTO search_cache(user_id, query_text, work_ids, total, updated_at)
+VALUES (:userId, :queryText, :workIds, :total, :updatedAt);
+
+selectSearch:
+SELECT * FROM search_cache WHERE user_id = :userId AND query_text = :queryText;
+
+-- ---------- search_history ----------
+insertHistory:
+INSERT OR IGNORE INTO search_history(client_id, user_id, query_text, results_count, searched_at, synced)
+VALUES (:clientId, :userId, :queryText, :resultsCount, :searchedAt, :synced);
+
+historyForUser:
+SELECT * FROM search_history WHERE user_id = :userId ORDER BY searched_at DESC LIMIT 100;
+
+markHistorySynced:
+UPDATE search_history SET synced = 1 WHERE client_id = :clientId;
+
+deleteHistoryForUser:
+DELETE FROM search_history WHERE user_id = :userId;
+
+-- ---------- favorite ----------
+favoritesForUser:
+SELECT * FROM favorite WHERE user_id = :userId ORDER BY created_at DESC;
+
+favoriteIdsForUser:
+SELECT work_id FROM favorite WHERE user_id = :userId;
+
+insertFavorite:
+INSERT OR REPLACE INTO favorite(user_id, work_id, title, authors, cover_id, first_year, subjects, created_at)
+VALUES (:userId, :workId, :title, :authors, :coverId, :firstYear, :subjects, :createdAt);
+
+deleteFavorite:
+DELETE FROM favorite WHERE user_id = :userId AND work_id = :workId;
+
+deleteFavoritesForUser:
+DELETE FROM favorite WHERE user_id = :userId;
+
+countFavorite:
+SELECT COUNT(*) FROM favorite WHERE user_id = :userId AND work_id = :workId;
+
+-- ---------- viewed_book ----------
+upsertViewed:
+INSERT OR REPLACE INTO viewed_book(user_id, work_id, viewed_at) VALUES (:userId, :workId, :viewedAt);
+
+viewedBooksForUser:
+SELECT b.work_id, b.title, b.authors, b.first_year, b.cover_id, b.subjects, b.description
+FROM viewed_book v JOIN cached_book b ON b.work_id = v.work_id
+WHERE v.user_id = :userId
+ORDER BY v.viewed_at DESC
+LIMIT 30;
+
+-- ---------- pending_op ----------
+upsertOp:
+INSERT OR REPLACE INTO pending_op(op_key, user_id, type, target, payload, attempts, last_error, created_at)
+VALUES (:opKey, :userId, :type, :target, :payload, 0, NULL, :createdAt);
+
+opsForUser:
+SELECT * FROM pending_op WHERE user_id = :userId ORDER BY created_at ASC;
+
+countOpsForUser:
+SELECT COUNT(*) FROM pending_op WHERE user_id = :userId;
+
+-- Sólo borra la operación si no fue reemplazada mientras se enviaba (mismo created_at).
+deleteOp:
+DELETE FROM pending_op WHERE op_key = :opKey AND created_at = :createdAt;
+
+markOpFailed:
+UPDATE pending_op SET attempts = attempts + 1, last_error = :lastError WHERE op_key = :opKey;
+
+-- ---------- reading_item (CRUD en caché) ----------
+readingForUser:
+SELECT * FROM reading_item WHERE user_id = :userId ORDER BY updated_at DESC, id DESC;
+
+insertReading:
+INSERT OR REPLACE INTO reading_item(user_id, id, title, author, status, notes, updated_at)
+VALUES (:userId, :id, :title, :author, :status, :notes, :updatedAt);
+
+deleteReading:
+DELETE FROM reading_item WHERE user_id = :userId AND id = :id;
+
+deleteReadingForUser:
+DELETE FROM reading_item WHERE user_id = :userId;
+
+-- ---------- recommendation ----------
+recommendationsForUser:
+SELECT * FROM recommendation WHERE user_id = :userId ORDER BY score DESC, title ASC;
+
+insertRecommendation:
+INSERT OR REPLACE INTO recommendation(user_id, work_id, title, authors, cover_id, first_year, reason, score, generated_at)
+VALUES (:userId, :workId, :title, :authors, :coverId, :firstYear, :reason, :score, :generatedAt);
+
+deleteRecommendationsForUser:
+DELETE FROM recommendation WHERE user_id = :userId;
+
+-- ---------- sync_meta ----------
+setMeta:
+INSERT OR REPLACE INTO sync_meta(user_id, meta_key, meta_value) VALUES (:userId, :metaKey, :metaValue);
+
+getMeta:
+SELECT meta_value FROM sync_meta WHERE user_id = :userId AND meta_key = :metaKey;

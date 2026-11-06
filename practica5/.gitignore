@@ -1,0 +1,14 @@
+.env
+*.db
+__pycache__/
+.pytest_cache/
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+.kotlin/
+captures/
+*.jks
+*.keystore
+google-services.json
