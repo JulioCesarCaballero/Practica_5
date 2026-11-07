@@ -24,32 +24,10 @@ Fecha de entrega: 6 de noviembre de 2026
 
 Aplicación móvil con **Kotlin Multiplatform + Compose Multiplatform** que consume el backend REST propio (continuación de la Práctica 2) y la API pública **Open Library**. Incluye búsqueda, historial, favoritos, recomendaciones verificables, inicio de sesión con Google, rol administrador, caché local con SQLDelight y sincronización con cola de operaciones pendientes.
 
-> **Alcance de esta entrega:** sólo se implementa y prueba el destino **Android** (API 24+). Toda la lógica, la base local, el cliente HTTP y la interfaz están en `commonMain`; lo específico de Android está aislado en `androidMain/platform` (ver «Arquitectura»).
+> **Alcance de esta entrega:** Sólo se implementa y prueba el destino **Android** (API 24+). Toda la lógica, la base local, el cliente HTTP y la interfaz están en `commonMain`; lo específico de Android está aislado en `androidMain/platform` (ver «Arquitectura»).
 
 ---
 
-## Estructura del repositorio
-
-```
-practica5/
-├── backend/                 API REST Flask (JWT, CRUD, favoritos, historial, admin, Google)
-│   ├── app.py
-│   ├── tests/test_api.py    pruebas automatizadas (pytest)
-│   └── Dockerfile
-├── docker-compose.yml       API + túnel HTTPS opcional (perfil "https")
-├── .env.example             variables del backend (sin secretos reales)
-├── app/                     proyecto Gradle Kotlin Multiplatform
-│   ├── composeApp/src/
-│   │   ├── commonMain/      código compartido: UI, repositorios, Ktor, SQLDelight, sincronización
-│   │   ├── androidMain/     MainActivity + implementaciones Android (sesión cifrada, red, Google)
-│   │   └── commonTest/      pruebas unitarias compartidas
-│   └── local.properties.example
-└── docs/
-    ├── INFORME_TECNICO.md
-    ├── MATRIZ_PRUEBAS.md
-    ├── SINCRONIZACION.md
-    └── evidencias/          capturas de las pruebas en Android
-```
 
 ## Requisitos
 
@@ -59,7 +37,7 @@ practica5/
 | JDK | 17 (el que incluye Android Studio) |
 | Android SDK | compileSdk 35, minSdk 24 (Android 7.0) |
 | Emulador/dispositivo | Android 7.0+ **con Google Play** (para el inicio con Google) |
-| Docker Desktop | 4.x con Docker Compose v2 |
+| Docker Desktop | 4.6 con Docker Compose v2 |
 
 Versiones principales: Kotlin 2.1.20 · Compose Multiplatform 1.8.0 · Ktor 3.1.2 · SQLDelight 2.0.2 · kotlinx.serialization 1.8.1 · Coil 3.1.0 · Credential Manager 1.5.0.
 
@@ -144,11 +122,11 @@ O desde Android Studio: abrir la carpeta **`app/`** (no la raíz `practica5/`), 
 | GET | `/api/admin/users/{id}/history` · `/favorites` | **Nuevo** | Admin + consentimiento del usuario |
 
 
-> La API y la base de datos se reutilizan y amplían a partir de la Práctica 2: [enlace al commit/etiqueta de la Práctica 2](https://github.com/JulioCesarCaballero/...).
+> La API y la base de datos se reutilizan y amplían a partir de la Práctica 2: [enlace al commit/etiqueta de la Práctica 2](https://github.com/JulioCesarCaballero/Practica2).
 
 ## Sincronización (resumen)
 
-Ver [`docs/SINCRONIZACION.md`](docs/SINCRONIZACION.md). En corto: **cola local de operaciones idempotentes** (PUSH) → **descarga del estado del servidor** (PULL) con el servidor como fuente de verdad, excepto los cambios locales todavía pendientes. Reintentos con backoff 1 s/2 s/4 s. Se dispara al abrir la app, al iniciar sesión, al recuperar la conexión y manualmente.
+En corto: **cola local de operaciones idempotentes** (PUSH) → **descarga del estado del servidor** (PULL) con el servidor como fuente de verdad, excepto los cambios locales todavía pendientes. Reintentos con backoff 1 s/2 s/4 s. Se dispara al abrir la app, al iniciar sesión, al recuperar la conexión y manualmente.
 
 ## Arquitectura
 
@@ -165,77 +143,34 @@ Ver [`docs/SINCRONIZACION.md`](docs/SINCRONIZACION.md). En corto: **cola local d
 
 ## Evidencias (Android)
 
-Emulador: Pixel · Android XX (API XX) con Google Play. Matriz completa de pruebas en [`docs/MATRIZ_PRUEBAS.md`](docs/MATRIZ_PRUEBAS.md).
+Emulador: Dispositivo fisico POCO X8 pro.
 
-| Inicio de sesión | Inicio con Google | CRUD (Práctica 2) |
+| Inicio de sesión | Inicio con Google | CRUD  |
 |:---:|:---:|:---:|
-| <img src="docs/evidencias/f4_login.png" width="230"> | <img src="docs/evidencias/f4_google.png" width="230"> | <img src="docs/evidencias/f1_crud.png" width="230"> |
+| <img src="docs/evidencias/Login.jpeg" width="230"> | <img src="docs/evidencias/Inicio_google.jpeg" width="230"> | <img src="docs/evidencias/CRUD.jpeg" width="230"> |
 
 | Búsqueda (Open Library) | Detalle | Sin resultados |
 |:---:|:---:|:---:|
-| <img src="docs/evidencias/f2_busqueda.png" width="230"> | <img src="docs/evidencias/f2_detalle.png" width="230"> | <img src="docs/evidencias/f3_vacio.png" width="230"> |
+| <img src="docs/evidencias/Busqueda.jpeg" width="230"> | <img src="docs/evidencias/Detalle.jpeg" width="230"> | <img src="docs/evidencias/Sin_resultados.jpeg" width="230"> |
 
 | Favoritos | Recomendaciones | Modo offline |
 |:---:|:---:|:---:|
-| <img src="docs/evidencias/f5_favoritos.png" width="230"> | <img src="docs/evidencias/f6_recs.png" width="230"> | <img src="docs/evidencias/f8_offline.png" width="230"> |
+| <img src="docs/evidencias/Favoritos.jpeg" width="230"> | <img src="docs/evidencias/Recomendaciones.jpeg" width="230"> | <img src="docs/evidencias/Offline.jpeg" width="230"> |
 
-| Sincronización | Panel administrador | Acceso denegado (403) |
+| Sincronización | Panel administrador | Mis libros |
 |:---:|:---:|:---:|
-| <img src="docs/evidencias/f9_sync.png" width="230"> | <img src="docs/evidencias/f11_admin.png" width="230"> | <img src="docs/evidencias/f12_403.png" width="230"> |
+| <img src="docs/evidencias/Sincronización.jpeg" width="230"> | <img src="docs/evidencias/Administrador.jpeg" width="230"> | <img src="docs/evidencias/Mis_libros.jpeg" width="230"> |
 
-**Video de demostración:** [enlace a YouTube/Drive](https://...)
 
 ## Contribuciones
 
 | Integrante | Aportaciones |
 |---|---|
-| Caballero Pérez Julio César | _por completar_ |
-| Velazquez Beltran Brandon | _por completar_ |
+| Caballero Pérez Julio César | Implementación para Android |
+| Velazquez Beltran Brandon | Implementación para IOS |
 
 ## Herramientas de IA
 
 Se utilizó un asistente de IA (Claude, Anthropic) como apoyo para generar código base y documentación.
 
----
 
-# 🇬🇧 English
-
-**Libros P5** is a **Kotlin Multiplatform + Compose Multiplatform** app (this delivery targets **Android only**, API 24+) that consumes our own REST backend (continuation of Lab 2) and the public **Open Library** API. Features: text search with detail view, search history, favorites, rule-based recommendations, Google Sign-In, admin role validated server-side, SQLDelight offline cache and a pending-operations queue synced on reconnect.
-
-## Requirements
-Android Studio Ladybug+, JDK 17, Android SDK 35 (minSdk 24), an emulator/device with Google Play, Docker Desktop with Compose v2.
-
-## Backend
-```bash
-cp .env.example .env        # set JWT_SECRET (≥32 chars), GOOGLE_CLIENT_IDS, ADMIN_EMAILS
-docker compose --profile https up -d --build
-docker compose logs tunnel | grep trycloudflare   # public HTTPS URL
-cd backend && pip install -r requirements.txt && pytest -q
-```
-The app only allows HTTPS, so use the Cloudflare quick tunnel (profile `https`) or any HTTPS deployment.
-
-## Google OAuth (no secrets committed)
-Create a **Web application** OAuth client (its ID goes to `GOOGLE_WEB_CLIENT_ID` in `app/local.properties` and to `GOOGLE_CLIENT_IDS` in `.env`) and an **Android** OAuth client with package `mx.ipn.escom.practica5` and your debug SHA‑1. The backend verifies the Google ID token (signature, audience, issuer, expiry, verified email) and issues its own JWT.
-
-## Android app
-```bash
-cd app
-cp local.properties.example local.properties   # API_BASE_URL, GOOGLE_WEB_CLIENT_ID
-./gradlew :composeApp:assembleDebug
-./gradlew :composeApp:testDebugUnitTest
-```
-
-## Sync strategy
-Idempotent local operation queue (PUT/DELETE favorites, POST history with a client UUID, preference update) is pushed first, then server state is pulled and replaces local data, except items that still have pending local operations (latest local intent wins). Transient errors are retried with exponential backoff (1 s, 2 s, 4 s); permanent 4xx errors drop the operation so the queue never blocks. Sync runs on app start, login, reconnection and on demand. Details in `docs/SINCRONIZACION.md`.
-
-## Endpoints
-See the table above: Lab 2 endpoints (auth + `/api/books` CRUD) are reused; Google login, logout/revocation, favorites, history, preferences and admin endpoints are new.
-
-## Evidence
-Screenshots of every scenario are shown in the Spanish section (*Evidencias*) and stored in `docs/evidencias/`; the full test matrix is in `docs/MATRIZ_PRUEBAS.md`.
-
-## Authors
-Caballero Pérez Julio César · Velazquez Beltran Brandon — Group 7CV4, ESCOM-IPN.
-
-## AI tools
-An AI assistant (Claude, Anthropic) was used to help draft code and documentation.
