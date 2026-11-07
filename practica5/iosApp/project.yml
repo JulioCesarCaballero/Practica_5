@@ -1,0 +1,49 @@
+# Proyecto Xcode generado con XcodeGen:  cd iosApp && xcodegen generate
+name: iosApp
+options:
+  bundleIdPrefix: mx.ipn.escom
+  deploymentTarget:
+    iOS: "15.0"
+  createIntermediateGroups: true
+configFiles:
+  Debug: Config.xcconfig
+  Release: Config.xcconfig
+packages:
+  GoogleSignIn:
+    url: https://github.com/google/GoogleSignIn-iOS
+    from: 8.0.0
+targets:
+  iosApp:
+    type: application
+    platform: iOS
+    sources:
+      - path: iosApp
+        excludes:
+          - Info.plist
+    dependencies:
+      - package: GoogleSignIn
+        product: GoogleSignIn
+    preBuildScripts:
+      - name: Compilar framework Kotlin (ComposeApp)
+        basedOnDependencyAnalysis: false
+        script: |
+          cd "$SRCROOT/../app"
+          ./gradlew :composeApp:embedAndSignAppleFrameworkForXcode
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: mx.ipn.escom.practica5
+        PRODUCT_NAME: LibrosP5
+        INFOPLIST_FILE: iosApp/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        SWIFT_VERSION: "5.0"
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+        ENABLE_BITCODE: NO
+        CODE_SIGN_STYLE: Automatic
+        "CODE_SIGNING_ALLOWED[sdk=iphonesimulator*]": NO
+        FRAMEWORK_SEARCH_PATHS:
+          - "$(inherited)"
+          - "$(SRCROOT)/../app/composeApp/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)"
+        OTHER_LDFLAGS:
+          - "$(inherited)"
+          - "-framework"
+          - "ComposeApp"

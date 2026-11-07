@@ -28,9 +28,14 @@ kotlin {
         }
     }
 
-    // Alcance de esta entrega: sólo Android. El código de commonMain no depende de Android,
-    // por lo que para iOS bastaría declarar iosArm64()/iosSimulatorArm64() y las implementaciones
-    // "actual" de la carpeta platform (ver README).
+    // iOS: x86_64 (simulador en Mac Intel o macOS virtualizado), Apple Silicon y dispositivo.
+    // El código de commonMain no depende de Android; lo específico está en iosMain/platform.
+    listOf(iosX64(), iosArm64(), iosSimulatorArm64()).forEach { target ->
+        target.binaries.framework {
+            baseName = "ComposeApp"
+            isStatic = true
+        }
+    }
 
     sourceSets {
         commonMain.dependencies {
@@ -59,6 +64,11 @@ kotlin {
             implementation(libs.androidx.credentials)
             implementation(libs.androidx.credentials.play)
             implementation(libs.googleid)
+        }
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
+            implementation(libs.sqldelight.native.driver)
+            implementation(libs.multiplatform.settings) // KeychainSettings (almacenamiento seguro en iOS)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

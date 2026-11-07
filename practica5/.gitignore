@@ -12,3 +12,10 @@ captures/
 *.jks
 *.keystore
 google-services.json
+
+# iOS
+iosApp/Config.xcconfig
+iosApp/*.xcodeproj
+iosApp/build/
+xcuserdata/
+DerivedData/

@@ -1,0 +1,9 @@
+// Copia como Config.xcconfig (NO se sube al repositorio) y rellena.
+// En .xcconfig "//" empieza un comentario: por eso la URL se escribe  https:/$()/host
+API_BASE_URL = https:/$()/xxxx-xxxx.trycloudflare.com
+// Client ID de tipo "Aplicación web" (el mismo de GOOGLE_CLIENT_IDS del backend)
+WEB_CLIENT_ID = 1234567890-webwebweb.apps.googleusercontent.com
+// Client ID de tipo "iOS" (bundle id: mx.ipn.escom.practica5)
+IOS_CLIENT_ID = 1234567890-iosiosios.apps.googleusercontent.com
+// Mismo ID de iOS invertido: com.googleusercontent.apps.<parte antes de .apps.googleusercontent.com>
+IOS_REVERSED_CLIENT_ID = com.googleusercontent.apps.1234567890-iosiosios
